@@ -1,0 +1,275 @@
+# Generation 2 dataset sources, read by src/build_dataset.py. Final choice of 2026-10-07 (see docs/EVOLUTION.md).
+#
+#   python src/build_dataset.py --sources configs/gen2/sources.yaml --out /kaggle/working/gen2_data \
+#       --search-root /kaggle/input --seed 42 --max-side 1280
+#
+# Kaggle inputs to attach (the builder finds them anywhere under /kaggle/input, up to 7 folder levels deep):
+#   viswaprakash1990/garbage-detection   Gen 1, folder "GARBAGE CLASSIFICATION"
+#   kneroma/tacotrashdataset             TACO, data/annotations.json + data/batch_1..15/
+#   humansintheloop/recycling-dataset    HITL Recycling, Supervisely project (<dataset>/ann + <dataset>/img, meta.json)
+#   shreyanshjain30/dwsd-india-waste     DWSD: a private Kaggle upload of the Mendeley zip (gr99ny6b8p, DSWD.zip);
+#                                        found by its DSWD (or DWSD) folder holding Train/ and Test/.
+#                                        Optional: without it the build goes on, with a loud warning.
+#
+# Top-level fields
+#   classes   target class names, in index order. Gen 1's six keep indices 0-5; OTHER is index 6.
+#   sources   list of datasets to merge, fields below.
+#
+# Source fields
+#   name            short id (letters, digits, _ or -). Prefixes every output file: <name>__<image>.jpg
+#   enabled         false = skipped (its class_map may then be an unfinished placeholder)
+#   format          yolo | coco | supervisely | labelme | semantic_mask
+#   locate          folder name(s) searched under --search-root (default: the project root), up to 7 levels deep,
+#                   so Kaggle's /kaggle/input/datasets/<owner>/<slug>/... nesting is found. Names are compared
+#                   ignoring case, spaces, '-' and '_'. Required except for coco (where it narrows the search).
+#                   An absolute path, or a path relative to --search-root, is used as it is.
+#   locate_match    exact (default) | contains: with contains, a folder whose name contains a locate name matches
+#   kaggle          the Kaggle dataset to attach; named in the error message when the source is not found
+#   optional        default false. true: a source that is not found is skipped with a warning instead of an error
+#   names_file      yolo only: the yaml with the class names, relative to the found folder
+#                   (default: data.yaml in the folder or its parent)
+#   annotations     coco only: annotations json file name or relative path (e.g. data/annotations.json)
+#   images_dir      coco only: image folder relative to the json's folder (default: the json's folder)
+#   class_field     coco only: name (default) or supercategory: which category field class_map keys refer to
+#   box_frame       coco/supervisely/labelme: auto (default) | display | raw. Whether boxes refer to the photo after
+#                   EXIF rotation (display) or to the stored pixels (raw); auto decides per image from the recorded
+#                   width/height and assumes display when they cannot tell.
+#   class_from_tag  supervisely only: take the class from this object tag's value (e.g. Material) instead of the
+#                   object's class title. class_map keys are then the tag's values.
+#   tag_overrides   supervisely only: {tag: {value: target}}, checked first, in order (e.g. Object: cigarettebutt)
+#   untagged        supervisely only, needed with class_from_tag: the target of an object without that tag
+#   image_dirs      semantic_mask only: photo folders relative to the located folder (folder names match ignoring case)
+#   mask_dirs       semantic_mask only: the mask folders, paired in order with image_dirs. A photo and its mask pair
+#                   by file stem after removing image_prefix / mask_prefix; an unpaired file is an error.
+#   image_prefix, mask_prefix   semantic_mask only: stem prefixes removed before pairing (e.g. img_ and mask_)
+#   mask_values     semantic_mask only: {pixel value: source class name}; class_map then maps these names.
+#                   A value found in a mask that is in neither mask_values nor ignore_values is an error.
+#   ignore_values   semantic_mask only: pixel values that are not objects (default [0], background)
+#   min_box_area    semantic_mask only: connected regions smaller than this many mask pixels are dropped (default 50)
+#   connectivity    semantic_mask only: 8 (default) or 4, the pixel neighbourhood of a connected region. Each region
+#                   of one value is one box, so touching objects of the same class merge into one box.
+#   class_map       source class name -> target class name | drop_annotation | drop_and_mask | drop_image.
+#                     drop_annotation  remove that box, keep the image
+#                     drop_and_mask    remove that box and paint its region mid-grey (114), so the unlabelled
+#                                      object is not learnt as background
+#                     drop_image       remove every image containing that class
+#                   Every source class must be listed; an unmapped or unknown name is an error. Labelme labels
+#                   are matched ignoring case, spaces and punctuation.
+#   allow_unused_map_keys  default false. true: class_map may list names that do not occur (spelling variants)
+#   domain          per-domain test lists and data_test_<domain>.yaml: studio | real_world | india
+#   licence         recorded in build_report.json
+#   keep_split_csv  optional: a split csv (columns split, file) whose assignment this source keeps, so Gen 1 test
+#                   images stay test. Relative paths are resolved from the project root.
+#   force_split     optional: train | valid | test: every image of the source goes to this split
+#   subsample       optional, with keep_split_csv: {train: N, valid: M, seed: S}: keep a seeded sample of N train
+#                   and M valid images, stratified by dominant class. Test is never subsampled.
+#   max_images      optional: use at most this many images of the source (seeded sample, for quick tests)
+#   keep_empty      optional, default false: keep images that have no boxes as background images.
+#                   Images that lose all their boxes through drop_annotation are always removed.
+
+classes: [BIODEGRADABLE, CARDBOARD, GLASS, METAL, PAPER, PLASTIC, OTHER]
+
+sources:
+  # Gen 1 dataset, 416x416 studio-style photos. Gen 1 split kept; about 3000 of 7324 train and 900 of 2094 valid
+  # images are used (class-stratified, seeded); all 1046 Gen 1 test images stay test.
+  - name: garbage_detection
+    format: yolo
+    kaggle: viswaprakash1990/garbage-detection
+    locate: ["GARBAGE CLASSIFICATION", "garbage-detection"]
+    class_map:
+      BIODEGRADABLE: BIODEGRADABLE
+      CARDBOARD: CARDBOARD
+      GLASS: GLASS
+      METAL: METAL
+      PAPER: PAPER
+      PLASTIC: PLASTIC
+    domain: studio
+    licence: "CC BY 4.0 (Roboflow material-identification/garbage-classification-3 v2)"
+    keep_split_csv: configs/split.csv
+    keep_empty: true   # Gen 1 kept images whose only boxes were zero-size, so its test set stays identical
+    subsample: {train: 3000, valid: 900, seed: 42}
+
+  # TACO official set (1500 images, 4784 boxes, 60 categories), COCO, high-resolution phone photos of litter.
+  # Kaggle copy kneroma/tacotrashdataset: data/annotations.json with file names like batch_1/000006.jpg.
+  # Mapping: dataset_research section 3a, 7-class column (every category maps to a class; none is dropped).
+  - name: taco
+    format: coco
+    kaggle: kneroma/tacotrashdataset
+    locate: ["tacotrashdataset", "TACO"]
+    annotations: annotations.json
+    class_field: name
+    box_frame: auto
+    domain: real_world
+    licence: "CC BY 4.0 (TACO, Proenca and Simoes 2020, Zenodo 10.5281/zenodo.3587843)"
+    class_map:
+      Aluminium foil: METAL                 # 0
+      Battery: OTHER                        # 1 hazardous, not a bin class
+      Aluminium blister pack: OTHER         # 2 multi-layer
+      Carded blister pack: OTHER            # 3 card + plastic laminate
+      Other plastic bottle: PLASTIC         # 4
+      Clear plastic bottle: PLASTIC         # 5
+      Glass bottle: GLASS                   # 6
+      Plastic bottle cap: PLASTIC           # 7
+      Metal bottle cap: METAL               # 8
+      Broken glass: GLASS                   # 9 138 boxes in 15 images (clustered shards)
+      Food Can: METAL                       # 10
+      Aerosol: METAL                        # 11
+      Drink can: METAL                      # 12
+      Toilet tube: CARDBOARD                # 13
+      Other carton: CARDBOARD               # 14
+      Egg carton: CARDBOARD                 # 15
+      Drink carton: CARDBOARD               # 16 Tetra Pak
+      Corrugated carton: CARDBOARD          # 17
+      Meal carton: CARDBOARD                # 18
+      Pizza box: CARDBOARD                  # 19
+      Paper cup: PAPER                      # 20
+      Disposable plastic cup: PLASTIC       # 21
+      Foam cup: PLASTIC                     # 22 EPS
+      Glass cup: GLASS                      # 23
+      Other plastic cup: PLASTIC            # 24
+      Food waste: BIODEGRADABLE             # 25
+      Glass jar: GLASS                      # 26
+      Plastic lid: PLASTIC                  # 27
+      Metal lid: METAL                      # 28
+      Other plastic: PLASTIC                # 29
+      Magazine paper: PAPER                 # 30
+      Tissues: PAPER                        # 31
+      Wrapping paper: PAPER                 # 32
+      Normal paper: PAPER                   # 33
+      Paper bag: PAPER                      # 34
+      Plastified paper bag: PAPER           # 35
+      Plastic film: PLASTIC                 # 36
+      Six pack rings: PLASTIC               # 37
+      Garbage bag: OTHER                    # 38 mixed contents
+      Other plastic wrapper: PLASTIC        # 39
+      Single-use carrier bag: PLASTIC       # 40
+      Polypropylene bag: PLASTIC            # 41
+      Crisp packet: PLASTIC                 # 42 metallised film, not METAL
+      Spread tub: PLASTIC                   # 43
+      Tupperware: PLASTIC                   # 44
+      Disposable food container: PLASTIC    # 45
+      Foam food container: PLASTIC          # 46 EPS
+      Other plastic container: PLASTIC      # 47
+      Plastic glooves: PLASTIC              # 48 (TACO's spelling)
+      Plastic utensils: PLASTIC             # 49
+      Pop tab: METAL                        # 50
+      Rope & strings: OTHER                 # 51 material unknown
+      Scrap metal: METAL                    # 52
+      Shoe: OTHER                           # 53
+      Squeezable tube: PLASTIC              # 54
+      Plastic straw: PLASTIC                # 55
+      Paper straw: PAPER                    # 56
+      Styrofoam piece: PLASTIC              # 57 EPS
+      Unlabeled litter: OTHER               # 58
+      Cigarette: OTHER                      # 59
+
+  # HITL Recycling ("Recycling Waste and Litter", Humans in the Loop), about 3200 street/pavement photos with one
+  # "litter" rectangle each, Supervisely JSON. Class: Object-tag overrides first, then the Material tag
+  # (dataset_research section 3b, 7-class column). About 8% of objects have no Material tag; they become OTHER.
+  - name: hitl
+    format: supervisely
+    kaggle: humansintheloop/recycling-dataset
+    locate: ["recycling-dataset", "Recycling Dataset", "recycling"]
+    box_frame: auto
+    domain: real_world
+    licence: "CC0 (Humans in the Loop, Recycling dataset)"
+    class_from_tag: Material
+    untagged: OTHER
+    tag_overrides:
+      Object:
+        cigarettebutt: OTHER        # overrides the material (butts are sometimes tagged paper)
+        foodwaste: BIODEGRADABLE
+        battery: OTHER
+        lighter: OTHER
+        vapeitem: OTHER
+        vapepack: OTHER
+        heets: OTHER
+        fireworks: OTHER
+        binbag: OTHER               # mixed contents
+        facemask: OTHER
+        clothing: OTHER
+        shoe: OTHER
+        tyre: OTHER
+        hairtie: OTHER
+        rubberband: OTHER
+        box: CARDBOARD
+        drinkcarton: CARDBOARD
+        cigarettepack: CARDBOARD
+    class_map:                      # Material tag values (all ten listed in meta.json)
+      aluminum: METAL
+      celluloseacetate: OTHER
+      glass: GLASS
+      metal: METAL
+      paper: PAPER
+      plastic: PLASTIC
+      polystyrene: PLASTIC
+      rubber: OTHER
+      tetrapak: CARDBOARD
+      textile: OTHER
+
+  # DWSD (Dense Waste Segmentation Dataset, Mendeley gr99ny6b8p; Ali et al., Data in Brief 2025,
+  # doi 10.1016/j.dib.2025.111340), 784 photos (448x448 PNG) of streets and parks around Kolkata. Used ONLY as the
+  # held-out "India real-world" test set: all images go to test. The download (DSWD.zip) holds DSWD/Train/{Image,Mask}
+  # (640) and DSWD/Test/{Image,Mask} (144): img_<n>.png with a grey-level mask_<n>.png whose pixel values 0-15 are
+  # classes. Every connected region of one value becomes one box; regions under 50 pixels are dropped (counted in
+  # build_report.json as tiny_region:<class>). Known limitation: touching objects of the same class form one region
+  # and merge into one box, so DWSD has fewer, larger boxes than a per-instance annotation would.
+  #
+  # Mask value -> class: the paper's Table 3 lists 0 background, 1 plastic container, 2 plastic bottle, 3 thermocol,
+  # 4 metal bottle, 5 plastic cardboard, 6 glass, 7 thermocol plate, 8 plastic, 9 paper, 10 plastic cup, 11 paper
+  # cup, 12 aluminium foil, 13 cloth, 14 nylon, and "0 and 15 background". Its per-value pixel counts match these
+  # masks exactly, but its names do NOT match what the regions show (checked on 16 regions per value, 2026-10-08):
+  # value 6 covers plastic bottles, 14 crumpled foil, 12 clothes, 10 white EPS blocks, and 15 (not background)
+  # covers polythene bags and film in 610 of the 784 masks. The names below are therefore INFERRED from the images;
+  # the paper's name is given in each comment. Uncertain values: 1, 4, 7, 9, 11 and 13 (see the comments).
+  # 81 masks have no class pixels (and 3 more only tiny regions). They are dropped (keep_empty is off): most are empty
+  # ground or walls, but some show plenty of unannotated waste, so they would not be fair "nothing here" test images.
+  # Local build of 2026-10-08: 700 of 784 images kept, 4502 boxes.
+  # The Kaggle upload (shreyanshjain30/dwsd-india-waste, from DSWD.zip) is found by its DSWD folder.
+  - name: dwsd
+    format: semantic_mask
+    kaggle: "shreyanshjain30/dwsd-india-waste (private upload of Mendeley DWSD gr99ny6b8p, DSWD.zip)"
+    optional: true
+    locate: ["DSWD", "DWSD", "dwsd-india-waste"]
+    image_dirs: [Train/Image, Test/Image]
+    mask_dirs: [Train/Mask, Test/Mask]
+    image_prefix: img_
+    mask_prefix: mask_
+    ignore_values: [0]               # background
+    min_box_area: 50                 # pixels of the 448x448 mask
+    connectivity: 8
+    mask_values:                     # inferred from the images; paper's Table 3 name in the comment
+      1: plastic pipe                # paper: plastic container. Straight white pipes/sticks (9 masks). Uncertain
+      2: metal bottles               # paper: plastic bottle. Cylindrical cans (8 masks)
+      3: paper                       # paper: thermocol. Printed paper, newspaper, cartons, paper bags, some boxes
+      4: plastic cardboard           # paper: metal bottle. Flat board/card pieces, a few cup pieces. Uncertain
+      5: plastic                     # paper: plastic cardboard. Woven sacks, plastic sheets, metallised packets
+      6: plastic bottles             # paper: glass. PET bottles
+      7: unknown white item          # paper: thermocol plate. One 494-pixel region at an image edge. Uncertain
+      8: plastic containers          # paper: plastic. Round tubs, bowls, cups seen from above, lids
+      9: cups                        # paper: paper. Paper cups and some clear plastic cups. Uncertain
+      10: thermocol                  # paper: plastic cup. White EPS foam blocks
+      11: thermocol plates           # paper: paper cup. Round white disposable plates. Uncertain (paper plates?)
+      12: cloth                      # paper: aluminium foil. Clothes and fabric
+      13: unknown textile-like       # paper: cloth. Rolled striped or green woven items (12 masks). Uncertain
+      14: aluminium foil             # paper: nylon. Crumpled foil
+      15: nylon                      # paper: background. Polythene bags, plastic film and wrappers (Indian "nylon")
+    domain: india
+    licence: "CC BY 4.0 (DWSD, Mendeley Data 10.17632/gr99ny6b8p.1)"
+    force_split: test
+    class_map:                       # research mapping (dataset_research section 3c) on the inferred names
+      plastic pipe: PLASTIC
+      metal bottles: METAL
+      paper: PAPER
+      plastic cardboard: CARDBOARD
+      plastic: PLASTIC
+      plastic bottles: PLASTIC
+      unknown white item: PLASTIC    # white disposables in DWSD are plastic or EPS
+      plastic containers: PLASTIC
+      cups: PAPER                    # mostly paper cups
+      thermocol: PLASTIC             # EPS
+      thermocol plates: PLASTIC      # EPS
+      cloth: OTHER                   # textile
+      unknown textile-like: OTHER
+      aluminium foil: METAL
+      nylon: PLASTIC                 # polythene

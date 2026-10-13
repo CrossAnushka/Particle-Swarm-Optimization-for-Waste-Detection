@@ -8,3 +8,6 @@ scipy>=1.14
 pandas>=2.2
 matplotlib>=3.9
 streamlit>=1.40
+# Streamlit Cloud is a headless Linux environment: use headless OpenCV
+# to avoid the "import cv2" error that the GUI build triggers there.
+opencv-python-headless>=4.8

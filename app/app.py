@@ -172,7 +172,13 @@ def main():
         about(results_by_gen, domain_results)
         bin_rules()
         st.stop()
-    model = get_model(str(path), h.GENERATIONS[gen]["imgsz"])
+    try:
+        model = get_model(str(path), h.GENERATIONS[gen]["imgsz"])
+    except Exception as e:
+        st.error(f"Could not load the model checkpoint ({path.name}): {e}")
+        about(results_by_gen, domain_results)
+        bin_rules()
+        st.stop()
     imgsz = h.model_imgsz(model, h.GENERATIONS[gen]["imgsz"])
     classes = h.model_class_names(model)
     st.sidebar.caption(f"Inference runs at image size {imgsz} px, the size this model was trained at."

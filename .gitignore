@@ -36,6 +36,8 @@ GARBAGE CLASSIFICATION/
 # Training runs / large outputs
 runs/
 *.onnx
+!app/models/*.pt
+!app/models/gen2/*.pt
 
 # Secrets
 .env

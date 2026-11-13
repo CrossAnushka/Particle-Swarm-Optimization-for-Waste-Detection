@@ -18,7 +18,7 @@ We did the whole experiment two times, we call them Generation 1 and Generation 
 |---|---|---|
 | Training data | Kaggle garbage-detection (studio photos), 7,324 train / 2,094 val | Gen 1 subsample + TACO + HITL Recycling, 6,292 train / 1,841 val |
 | Test sets | 1,046 studio images | all (1,514), studio (1,046), real_world (468), india (700, DWSD, test only) |
-| Classes | 6 | 7 (the same six + OTHER) |
+| Classes | 6: BIODEGRADABLE, PAPER, CARDBOARD, PLASTIC, METAL, GLASS | 7 (previous six + OTHER) |
 | Model | YOLOv8n at 416 px | YOLOv8n at 640 px |
 | Test mAP@50 (defaults / random / PSO) | 0.676 / 0.672 / 0.668 | all: 0.479 / 0.497 / 0.500, real_world: 0.310 / 0.298 / 0.310, india: 0.027 / 0.023 / 0.027 |
 | What we found | All three are tied | Random search and PSO both beat the defaults by about 0.02, but they tie with each other |

@@ -189,35 +189,6 @@ report/       Generation 1 project report
 paper/        research paper (LaTeX, figures and the scripts that draw them)
 ```
 
-## Reproducing the experiment
-
-All GPU work was done in Kaggle notebooks on a T4 (GPU T4 x2, Internet on, run with Save Version → Save & Run All). Everything else runs on a laptop.
-
-**Generation 1**
-
-1. Download the Kaggle dataset into the project folder and run the checks (this reuses `configs/split.csv`):
-   ```bash
-   .venv/Scripts/python src/verify_dataset.py --root "GARBAGE CLASSIFICATION"
-   ```
-2. Baseline and proxy check on Kaggle: `phase2a_baseline.ipynb`, `phase2b_proxy_check.ipynb`
-3. PSO sanity check on a laptop:
-   ```bash
-   .venv/Scripts/python src/pso_benchmark.py
-   ```
-4. The two searches on Kaggle: `phase4a_pso_search.ipynb`, `phase4b_random_search.ipynb` (about 2 hours each)
-5. Full training of both winners on Kaggle: `phase5a_train_arm_b.ipynb`, `phase5b_train_arm_c.ipynb`
-6. Download the weights and results, then evaluate locally:
-   ```bash
-   .venv/Scripts/python src/evaluate.py
-   ```
-
-If a Kaggle session dies in the middle of a search, attach the output of the failed version and run again. `search.py` replays its log and continues from the first missing evaluation.
-
-One small thing: a `.pt` file downloads from Kaggle as a `.zip`. Just rename it back to `best.pt`, don't unzip it.
-
-**Generation 2**
-
-Run the notebooks in `notebooks/gen2/` in order, `g2_0` (dataset build) to `g2_7` (Gen 1 vs Gen 2 comparison). The run order, which outputs to attach and the troubleshooting notes are in [notebooks/gen2/README.md](notebooks/gen2/README.md). DWSD is not on Kaggle, so download it from Mendeley (`gr99ny6b8p`) and upload it as a private dataset if you want the india test set.
 
 ## Limitations
 

@@ -245,10 +245,10 @@ More papers are listed in [docs/RELATED_WORK.md](docs/RELATED_WORK.md).
 
 **Datasets**
 
-- [Garbage Detection – 6 Waste Categories](https://www.kaggle.com/datasets/viswaprakash1990/garbage-detection) by viswaprakash1990, CC BY 4.0
+- [Garbage Detection – 6 Waste Categories](https://www.kaggle.com/datasets/viswaprakash1990/garbage-detection) by viswaprakash1990, CC BY 4.0, via Kaggle
 - [TACO](http://tacodataset.org/), via Kaggle `kneroma/tacotrashdataset`, CC BY 4.0
-- [Recycling dataset](https://www.kaggle.com/datasets/humansintheloop/recycling-dataset) by Humans in the Loop, CC0
-- [DWSD](https://data.mendeley.com/datasets/gr99ny6b8p) on Mendeley Data, CC BY 4.0 (only used as the India test set)
+- [Recycling dataset](https://www.kaggle.com/datasets/humansintheloop/recycling-dataset) by Humans in the Loop, CC0, via Kaggle 
+- [DWSD](https://data.mendeley.com/datasets/gr99ny6b8p) on Mendeley Data, CC BY 4.0 (only used as the India test set) via official site
 
 
 ## Authors

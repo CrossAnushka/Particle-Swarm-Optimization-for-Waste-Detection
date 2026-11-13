@@ -30,39 +30,44 @@ REPO = Path(__file__).resolve().parents[3]
 RES = REPO / "results"
 OUT = REPO / "paper" / "figures"
 
-# Arm colors and labels shared by every figure of the paper.
+# Line and bar styles of the three arms, kept the same in all figures.
 ARM = {
-    "A": {"label": "A: Defaults", "color": "#6b7280", "marker": "o"},
-    "B": {"label": "B: Random search", "color": "#2563eb", "marker": "^"},
-    "C": {"label": "C: PSO", "color": "#ea580c", "marker": "s"},
+    "A": {"label": "Defaults", "color": "k", "marker": "o", "ls": "-.", "face": "white", "hatch": ""},
+    "B": {"label": "Random search", "color": "#0072BD", "marker": "^", "ls": "--", "face": "0.80", "hatch": "///"},
+    "C": {"label": "PSO", "color": "#D95319", "marker": "s", "ls": "-", "face": "0.45", "hatch": ""},
 }
-INK = "#1f2937"  # text and neutral marks
-MUTED = "#6b7280"
-GRID = "#e5e7eb"
 COL_W = 3.5  # IEEE column width, inches
 PAGE_W = 7.16  # IEEE text width, inches
 
 plt.rcParams.update({
     "font.family": "serif",
-    "font.serif": ["Times New Roman", "STIXGeneral", "DejaVu Serif"],
+    "font.serif": ["Times New Roman", "Times", "STIXGeneral", "DejaVu Serif"],
     "mathtext.fontset": "stix",
     "font.size": 8,
-    "axes.titlesize": 8.5,
+    "axes.titlesize": 8,
     "axes.labelsize": 8,
-    "xtick.labelsize": 8,
-    "ytick.labelsize": 8,
-    "legend.fontsize": 8,
-    "axes.edgecolor": MUTED,
-    "axes.linewidth": 0.6,
-    "xtick.color": INK,
-    "ytick.color": INK,
+    "xtick.labelsize": 7.5,
+    "ytick.labelsize": 7.5,
+    "legend.fontsize": 7.5,
+    "axes.linewidth": 0.8,
+    "xtick.direction": "in",
+    "ytick.direction": "in",
+    "xtick.top": True,
+    "ytick.right": True,
     "xtick.major.width": 0.6,
     "ytick.major.width": 0.6,
-    "axes.labelcolor": INK,
-    "text.color": INK,
-    "savefig.dpi": 300,
+    "xtick.major.size": 3,
+    "ytick.major.size": 3,
+    "lines.linewidth": 1.2,
+    "lines.markersize": 4,
+    "hatch.linewidth": 0.5,
+    "legend.frameon": True,
+    "legend.fancybox": False,
+    "legend.edgecolor": "k",
+    "legend.framealpha": 1.0,
+    "savefig.dpi": 600,
     "savefig.bbox": "tight",
-    "savefig.pad_inches": 0.02,
+    "savefig.pad_inches": 0.03,
 })
 
 
@@ -70,11 +75,18 @@ def load(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def style_axes(ax, grid_axis="y"):
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    ax.grid(True, axis=grid_axis, color=GRID, linewidth=0.6)
+def style_axes(ax, grid_axis="both"):
+    ax.grid(True, axis=grid_axis, color="0.75", linestyle=":", linewidth=0.5)
     ax.set_axisbelow(True)
+    for lg in [ax.get_legend()]:
+        if lg is not None:
+            lg.get_frame().set_linewidth(0.6)
+
+
+def legend(ax, **kw):
+    lg = ax.legend(**kw)
+    lg.get_frame().set_linewidth(0.6)
+    return lg
 
 
 def ranks(values):
@@ -97,32 +109,26 @@ def fig_proxy():
     for i, p, m, rp, rm in zip(ids, prox, med, ranks(prox), ranks(med)):
         print(f"  {i:<9} proxy {p:.5f} (rank {rp})  medium {m:.5f} (rank {rm})")
 
-    fig, ax = plt.subplots(figsize=(COL_W, 2.55))
-    style_axes(ax, "both")
+    fig, ax = plt.subplots(figsize=(COL_W, 2.6))
+    style_axes(ax)
     lhs = [k for k, i in enumerate(ids) if i != "defaults"]
-    ax.scatter(prox[lhs], med[lhs], s=30, facecolor="white", edgecolor=INK, linewidth=1.0, zorder=3,
-               label="LHS setting")
     d = ids.index("defaults")
-    ax.scatter(prox[d], med[d], s=34, marker=ARM["A"]["marker"], color=ARM["A"]["color"], edgecolor="white",
-               linewidth=0.8, zorder=4, label="Ultralytics defaults")
-    # Label offsets in points. The defaults marker sits next to lhs4, so its label gets a leader line and cannot be
-    # read as the label of lhs4.
-    offsets = {"lhs1": (5, -3), "lhs2": (5, -9), "lhs3": (-24, 4), "lhs5": (5, -9), "lhs7": (-6, -12),
-               "lhs6": (-14, 6), "lhs4": (-6, 6)}
+    ax.plot(prox[lhs], med[lhs], "ko", markersize=4.5, label="LHS settings")
+    ax.plot(prox[d], med[d], linestyle="none", marker="^", markersize=6, markerfacecolor="white",
+            markeredgecolor="#D95319", markeredgewidth=1.1, label="Defaults")
+    offsets = {"lhs1": (5, -3), "lhs2": (5, -8), "lhs3": (-22, 3), "lhs5": (5, -8), "lhs7": (-7, -11),
+               "lhs6": (-16, 5), "lhs4": (2, 5), "defaults": (2, -11)}
     for k, i in enumerate(ids):
         if i == "defaults":
-            ax.annotate(i, (prox[k], med[k]), xytext=(4, -24), textcoords="offset points", fontsize=8, color=INK,
-                        arrowprops=dict(arrowstyle="-", color=MUTED, linewidth=0.6, shrinkA=0, shrinkB=3))
             continue
-        dx, dy = offsets.get(i, (5, 3))
-        ax.annotate(i, (prox[k], med[k]), xytext=(dx, dy), textcoords="offset points", fontsize=8, color=INK)
+        ax.annotate(i, (prox[k], med[k]), xytext=offsets.get(i, (5, 3)), textcoords="offset points", fontsize=7)
     ax.set_xlim(0.04, 0.54)
     ax.set_ylim(0.25, 0.68)
-    ax.set_xlabel("Proxy val mAP@50 (12 epochs, 40% of train)")
-    ax.set_ylabel("Medium val mAP@50\n(40 epochs, full train)")
-    ax.text(0.97, 0.06, rf"Spearman $\rho$ = {check['rho']:.3f}, $n$ = {check['n']}", transform=ax.transAxes,
+    ax.set_xlabel("Proxy validation mAP@50 (12 epochs, 40% subset)")
+    ax.set_ylabel("Medium validation mAP@50 (40 epochs)")
+    ax.text(0.96, 0.07, rf"$\rho$ = {check['rho']:.3f} ($n$ = {check['n']})", transform=ax.transAxes,
             ha="right", va="bottom", fontsize=8)
-    ax.legend(loc="upper left", frameon=False, handletextpad=0.3, borderaxespad=0.2)
+    legend(ax, loc="upper left", handletextpad=0.3)
     fig.savefig(OUT / "r_proxy.png")
     plt.close(fig)
 
@@ -173,41 +179,32 @@ def fig_convergence():
         print(f"  {arm}: {len(idx)} identical configurations (indices {idx[0]}-{idx[-1]}"
               f"{', rounds ' + str(rounds) if rounds else ''}); Spearman {r.statistic:.4f}, p {r.pvalue:.2e}")
 
-    fig, axes = plt.subplots(1, 2, figsize=(PAGE_W, 2.45))
-    panels = (("(a) Generation 1: studio data, 6 classes, 416 px", "Gen 1", g1, (0.08, 0.565)),
-              ("(b) Generation 2: studio + real-world data, 7 classes, 640 px", "Gen 2", g2, (0.05, 0.378)))
-    for ax, (title, gen, logs, ylim) in zip(axes, panels):
-        style_axes(ax)
+    fig, axes = plt.subplots(1, 2, figsize=(PAGE_W, 2.5))
+    panels = (("(a)", "Gen 1", g1, (0.05, 0.56)), ("(b)", "Gen 2", g2, (0.03, 0.38)))
+    for ax, (tag, gen, logs, ylim) in zip(axes, panels):
+        style_axes(ax, "y")
         n = len(logs["C"]["evaluations"])
         for b in range(n_particles, n, n_particles):
-            ax.axvline(b + 0.5, color=MUTED, linestyle=":", linewidth=0.8, zorder=1)
-        for r in range(n // n_particles):
-            ax.text(r * n_particles + n_particles / 2 + 0.5, ylim[1], f"Round {r + 1}", ha="center",
-                    va="top", fontsize=8, color=MUTED)
-        if gen == "Gen 1":
-            ax.axhline(defaults, color=ARM["A"]["color"], linestyle="--", linewidth=1.0, zorder=2)
+            ax.axvline(b + 0.5, color="0.4", linestyle=":", linewidth=0.7)
         for arm in ("B", "C"):
-            s = scores[(gen, arm)]
-            x = np.arange(1, len(s) + 1)
-            ax.scatter(x, s, s=14, marker=ARM[arm]["marker"], color=ARM[arm]["color"], alpha=0.35, linewidths=0,
-                       zorder=3)
-            bsf = np.maximum.accumulate(s)
-            ax.step(x, bsf, where="post", color=ARM[arm]["color"], linewidth=1.6, zorder=4)
+            st = ARM[arm]
+            s_ = scores[(gen, arm)]
+            x = np.arange(1, len(s_) + 1)
+            ax.plot(x, s_, linestyle="none", marker=st["marker"], markersize=3.2, markerfacecolor="none",
+                    markeredgecolor=st["color"], markeredgewidth=0.6, label=f"{st['label']} (evaluations)")
+            ax.step(x, np.maximum.accumulate(s_), where="post", color=st["color"], linestyle=st["ls"],
+                    linewidth=1.3, label=f"{st['label']} (best so far)")
+        if gen == "Gen 1":
+            ax.axhline(defaults, color="k", linestyle="-.", linewidth=0.9, label="Defaults")
         ax.set_xlim(0.5, n + 0.5)
         ax.set_ylim(*ylim)
-        ax.set_xticks([1, 8, 16, 24, 32])
-        ax.set_xlabel("Evaluation (proxy training); dotted lines separate PSO rounds")
-        ax.set_title(title, loc="left", pad=4)
-    axes[0].set_ylabel("Proxy val mAP@50")
-    handles = [plt.Line2D([], [], color=ARM[a]["color"], marker=ARM[a]["marker"], markersize=5, linewidth=1.6,
-                          label=f"{ARM[a]['label']} (best: Gen 1 {scores[('Gen 1', a)].max():.4f}, "
-                                f"Gen 2 {scores[('Gen 2', a)].max():.4f})")
-               for a in ("B", "C")]
-    handles.append(plt.Line2D([], [], color=ARM["A"]["color"], linestyle="--", linewidth=1.0,
-                              label=f"A: Defaults on the same proxy ({defaults:.4f}; Gen 1 only)"))
-    fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.04),
-               handlelength=2.2, columnspacing=1.4)
-    fig.tight_layout(rect=(0, 0.08, 1, 1), w_pad=1.5)
+        ax.set_xticks([1, 4, 8, 12, 16, 20, 24, 28, 32])
+        ax.set_xlabel(f"Number of evaluations\n{tag}")
+        ax.set_ylabel("Proxy validation mAP@50")
+    h, l = axes[0].get_legend_handles_labels()
+    lg = fig.legend(h, l, loc="upper center", ncol=5, handlelength=2.4, columnspacing=1.2, borderpad=0.4)
+    lg.get_frame().set_linewidth(0.6)
+    fig.tight_layout(rect=(0, 0, 1, 0.92), w_pad=1.5)
     fig.savefig(OUT / "r_convergence.png")
     plt.close(fig)
 
@@ -219,32 +216,25 @@ def fig_gen1_per_class():
     test = load(RES / "test_results.json")
     classes = list(test["models"]["A"]["per_class"].keys())
     boxes = test["boxes_per_class"]
-    fig, ax = plt.subplots(figsize=(COL_W, 2.45))
-    style_axes(ax, "x")
-    y = np.arange(len(classes))[::-1]
+    fig, ax = plt.subplots(figsize=(COL_W, 2.4))
+    style_axes(ax, "y")
+    x = np.arange(len(classes))
+    width = 0.26
     print("== Gen 1 per-class test AP@50")
-    for yi, c in zip(y, classes):
+    for c in classes:
         vals = [test["models"][a]["per_class"][c]["ap50"] for a in "ABC"]
-        print(f"  {c:<14} " + "  ".join(f"{a} {v:.5f}" for a, v in zip("ABC", vals)))
-        ax.plot([min(vals), max(vals)], [yi, yi], color=GRID, linewidth=3.0, solid_capstyle="round", zorder=1)
-        # Small vertical dodge per arm so that near-equal values (e.g. METAL A/C, PAPER B/C) stay visible.
-        for (a, v), dy in zip(zip("ABC", vals), (0.2, 0.0, -0.2)):
-            ax.scatter(v, yi + dy, s=26, marker=ARM[a]["marker"], color=ARM[a]["color"], edgecolor="white",
-                       linewidth=0.6, zorder=3)
-        if c == "PLASTIC":
-            ax.annotate(f"{vals[2]:.3f}", (vals[2], yi - 0.2), xytext=(-5, -1), textcoords="offset points",
-                        ha="right", va="center", fontsize=8)
-            ax.annotate(f"{vals[0]:.3f}", (vals[0], yi + 0.2), xytext=(6, -1), textcoords="offset points",
-                        ha="left", va="center", fontsize=8)
-    ax.set_yticks(y)
-    ax.set_yticklabels([f"{c} ({boxes[c]:,})" for c in classes])
-    ax.set_xlim(0.56, 0.80)
-    ax.set_ylim(-0.6, len(classes) - 0.4)
-    ax.set_xlabel("Test AP@50 (studio test split, 1,046 images)")
-    handles = [plt.Line2D([], [], color=ARM[a]["color"], marker=ARM[a]["marker"], linestyle="none", markersize=5,
-                          label=ARM[a]["label"]) for a in "ABC"]
-    ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.4, 1.0), ncol=3, frameon=False,
-              handletextpad=0.2, columnspacing=1.0)
+        print(f"  {c:<14} ({boxes[c]:,} boxes) " + "  ".join(f"{a} {v:.5f}" for a, v in zip("ABC", vals)))
+    for j, a in enumerate("ABC"):
+        vals = [test["models"][a]["per_class"][c]["ap50"] for c in classes]
+        ax.bar(x + (j - 1) * width, vals, width, color=ARM[a]["face"], edgecolor="k", linewidth=0.6,
+               hatch=ARM[a]["hatch"], label=ARM[a]["label"])
+    ax.set_xticks(x)
+    ax.set_xticklabels([c.capitalize() for c in classes], rotation=25, ha="right", rotation_mode="anchor")
+    ax.tick_params(axis="x", top=False, length=0)
+    ax.set_ylim(0, 1.0)
+    ax.set_yticks(np.arange(0, 1.01, 0.2))
+    ax.set_ylabel("Test AP@50")
+    legend(ax, loc="upper center", ncol=3, handlelength=1.4, columnspacing=1.0, handletextpad=0.4)
     fig.savefig(OUT / "r_gen1_per_class.png")
     plt.close(fig)
 
@@ -255,8 +245,8 @@ def fig_gen1_per_class():
 def fig_domains():
     tags = [("all", "All"), ("studio", "Studio"), ("real_world", "Real-world"), ("india", "India (DWSD)")]
     runs = {t: load(RES / "gen2" / f"test_{t}_results.json") for t, _ in tags}
-    fig, ax = plt.subplots(figsize=(COL_W, 2.6))
-    style_axes(ax)
+    fig, ax = plt.subplots(figsize=(COL_W, 2.4))
+    style_axes(ax, "y")
     width = 0.26
     x = np.arange(len(tags))
     print("== Gen 2 test mAP@50 [95% CI] per domain")
@@ -265,20 +255,19 @@ def fig_domains():
         ci = np.array([runs[t]["models"][a]["bootstrap"]["map50_ci95"] for t, _ in tags])
         err = np.vstack([vals - ci[:, 0], ci[:, 1] - vals])
         xs = x + (j - 1) * width
-        ax.bar(xs, vals, width, color=ARM[a]["color"], edgecolor="white", linewidth=0.8, label=ARM[a]["label"],
-               zorder=2)
-        ax.errorbar(xs, vals, yerr=err, fmt="none", ecolor=INK, elinewidth=0.7, capsize=1.6, capthick=0.7,
-                    zorder=3)
-        for xi, v, top in zip(xs, vals, ci[:, 1]):
-            ax.text(xi, top + 0.012, f"{v:.3f}", rotation=90, ha="center", va="bottom", fontsize=8)
+        ax.bar(xs, vals, width, color=ARM[a]["face"], edgecolor="k", linewidth=0.6, hatch=ARM[a]["hatch"],
+               label=ARM[a]["label"])
+        ax.errorbar(xs, vals, yerr=err, fmt="none", ecolor="k", elinewidth=0.7, capsize=2, capthick=0.7)
         print(f"  {a}: " + "  ".join(f"{t} {v:.3f} [{lo:.3f}, {hi:.3f}]"
                                      for (t, _), v, (lo, hi) in zip(tags, vals, ci)))
     ax.set_xticks(x)
-    ax.set_xticklabels([f"{name}\n({runs[t]['images']:,} img.)" for t, name in tags])
-    ax.set_ylim(0, 0.85)
+    ax.set_xticklabels([name for _, name in tags])
+    ax.tick_params(axis="x", top=False, length=0)
+    ax.set_ylim(0, 0.8)
     ax.set_yticks(np.arange(0, 0.81, 0.2))
-    ax.set_ylabel("Test mAP@50 (95% CI)")
-    ax.legend(loc="upper right", frameon=False, handlelength=1.2, handletextpad=0.4, borderaxespad=0.1)
+    ax.set_xlabel("Test set")
+    ax.set_ylabel("Test mAP@50")
+    legend(ax, loc="upper right", handlelength=1.4, handletextpad=0.4)
     fig.savefig(OUT / "r_domains.png")
     plt.close(fig)
 

@@ -18,14 +18,14 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[1] / "m_pipeline.png"
 
-INK = "#1f2933"
-EDGE = {"data": "#3b5b7f", "a": "#6b7280", "b": "#2563eb", "c": "#ea580c", "proxy": "#6b5b95", "train": "#555f6b",
-        "eval": "#7a5c12"}
-FILL = {"data": "#e9eff6", "a": "#f3f4f6", "b": "#dbeafe", "c": "#ffedd5", "proxy": "#efecf6", "train": "#eef0f2",
-        "eval": "#f8f2e1"}
+INK = "black"
+KINDS = ("data", "a", "b", "c", "proxy", "train", "eval")
+EDGE = {k: "black" for k in KINDS}
+FILL = {k: "white" for k in KINDS}
+FILL.update({"proxy": "#eeeeee", "train": "#eeeeee"})
 
 # Same serif family as the other figures of the paper.
-plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "STIXGeneral", "DejaVu Serif"]})
+plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "STIXGeneral", "DejaVu Serif"]})
 TITLE_PT, BODY_PT, NOTE_PT = 7.7, 7.2, 7.0      # printed sizes
 LINE = 1.16                                     # body line spacing
 PAD_TOP, TITLE_GAP, PAD_BOTTOM = 3.0, 1.4, 3.0  # pt
@@ -49,8 +49,8 @@ ax.axis("off")
 
 
 def box(x0, x1, top, height, kind, title, body):
-    ax.add_patch(FancyBboxPatch((x0, top - height), x1 - x0, height, boxstyle="round,pad=0,rounding_size=3.5",
-                                linewidth=0.9, edgecolor=EDGE[kind], facecolor=FILL[kind]))
+    ax.add_patch(FancyBboxPatch((x0, top - height), x1 - x0, height, boxstyle="square,pad=0",
+                                linewidth=0.8, edgecolor=EDGE[kind], facecolor=FILL[kind]))
     cx, y = (x0 + x1) / 2, top - PAD_TOP
     ax.text(cx, y, title, ha="center", va="top", fontweight="bold", color=INK, fontsize=TITLE_PT)
     ax.text(cx, y - TITLE_PT * 1.1 - TITLE_GAP, body, ha="center", va="top", color=INK, fontsize=BODY_PT,
@@ -118,5 +118,5 @@ box(L, R, top, H_EVAL, "eval", "Test evaluation (test split used once)",
     "for every model and every pairwise difference\nGen 2: all, studio, real-world and India test sets")
 arrow(W / 2, train_bottom, W / 2, top)
 
-fig.savefig(OUT, dpi=400)
+fig.savefig(OUT, dpi=600)
 print(f"Wrote {OUT} ({W:.0f} x {H:.0f} pt)")

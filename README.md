@@ -250,7 +250,6 @@ More papers are listed in [docs/RELATED_WORK.md](docs/RELATED_WORK.md).
 - [Recycling dataset](https://www.kaggle.com/datasets/humansintheloop/recycling-dataset) by Humans in the Loop, CC0
 - [DWSD](https://data.mendeley.com/datasets/gr99ny6b8p) on Mendeley Data, CC BY 4.0 (only used as the India test set)
 
-Thanks to Ultralytics for YOLOv8, Streamlit for the demo framework and Kaggle for the free GPU hours.
 
 ## Authors
 

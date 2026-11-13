@@ -253,6 +253,6 @@ More papers are listed in [docs/RELATED_WORK.md](docs/RELATED_WORK.md).
 
 ## Authors
 
-Anushka Gupta, Ayush Kumar and Vaishnavi
+Anushka Gupta [2024UCM2307], Ayush Kumar [2024UCM2316] and Vaishnavi [2024UCM2325]
 
 The project report for Generation 1 is in [report/SwarmSort_Report.docx](report/SwarmSort_Report.docx) and the research paper covering both generations is in [paper/](paper/).
